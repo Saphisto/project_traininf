@@ -1,0 +1,10 @@
+FROM python:3.8
+
+WORKDIR /python-docker
+RUN apt update -y && apt install python3-pip -y 
+COPY requirments.txt requirments.txt
+RUN pip3 install -r requirments.txt
+
+COPY . .
+
+CMD [ "python3", "app.py", "Shay" ]
