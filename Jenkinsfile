@@ -39,15 +39,16 @@ pipeline{
         stage('add_username_date_test'){
             steps {
                 script {
+                    def test = sh(script: 'curl -s -o /dev/null -w "%{http_code}" localhost:80', returnStdout: true)
+                    env.TEST = test
+                }
+                script {
                     def now = new Date().format("dd/MM/yyyy-HH:mm", TimeZone.getTimeZone('GMT+2'))
                         env.NOW = now
                 }
                 wrap([$class: 'BuildUser']) {
-                sh 'echo "${BUILD_USER}", "$NOW" >> sometext.csv'
+                sh 'echo "${BUILD_USER}", "$NOW", "$TEST" >> sometext.csv'
                 }
-                sh """
-                curl -LI localhost:80 -o /dev/null -w '%{http_code}' -s >> sometext.csv
-                """
             }
         }
         stage('upload_test_to_s3'){
