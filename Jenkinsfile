@@ -58,5 +58,15 @@ pipeline{
                 }
             }
         }
+        stage('if_test_ok'){
+            when {
+                expression {
+                    return env.TEST == '200';
+                }
+            }
+            steps{
+                echo "success"
+            }
+        }
     }
 }
