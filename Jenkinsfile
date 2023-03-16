@@ -31,7 +31,6 @@ pipeline{
                     ]]
                 ])
             }
-            
         }
         stage('builddockerfile'){
             steps {
@@ -53,17 +52,27 @@ pipeline{
                     def now = new Date().format("dd/MM/yyyy-HH:mm", TimeZone.getTimeZone('GMT+2'))
                         env.NOW = now
                 }
+                // check if file already exist, and if not, create it
+                script {
+                    def filePath = '/home/ubuntu/workspace/check_dynamo/report.csv'
+                    if (!fileExists(filePath)) {
+                        writeFile file: filePath, text: ''
+                    }
+                }
                 wrap([$class: 'BuildUser']) {
-                sh 'echo "${BUILD_USER}", "$NOW", "$TEST" >> sometext.csv'
+                sh 'echo "${BUILD_USER}", "$NOW", "$TEST" >> report.csv'
+                sh 'pwd'
                 }
             }
         }
-        // stage('upload_test_to_s3'){
-        //     steps {
-        //         withAWS(credentials:'AWS_credentials', region:'us-east-1'){
-        //             s3Upload(file:'sometext.csv', bucket:'sqlabs-devops-shay', path:'sometext.csv')
-        //         }
-        //     }
+        stage('upload_test_to_s3'){
+            steps {
+                withAWS(credentials:'AWS_credentials', region:'us-east-1'){
+                    s3Upload(file:'/home/ubuntu/workspace/check_dynamo/report.csv', bucket:'sqlabs-devops-shay', path:'report.csv')
+                }
+            }
+        }
+        // stage('upload to dynamodb'){
         // }
         stage('if_test_ok'){
             when {
@@ -90,7 +99,6 @@ pipeline{
                                     ])
                                 }
                                 stage('Check and Stop Container_on_selected_agent') {
-                                    
                                         // Check if container is running
                                         script {
                                             def container = sh(
@@ -104,7 +112,6 @@ pipeline{
                                                 sh "sudo docker rmi flaskapp:latest"
                                             }
                                         }
-                                    
                                 }                                                
                                 stage('deploy_on_selected_agent'){
                                     sh 'sudo docker build -t flaskapp -f project_dockerfile .'
