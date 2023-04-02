@@ -27,7 +27,7 @@ pipeline{
         label 'dev'
     }
     stages{
-        stage('check_if_container is running'){
+        stage('check if container is already running'){
             steps {
                 script {
                     def container = sh(
@@ -56,17 +56,17 @@ pipeline{
                 ])
             }
         }
-        stage('builddockerfile'){
+        stage('build dockerfile'){
             steps {
                 sh 'sudo docker build -t flaskapp -f project_dockerfile .'
             }
         }
-        stage('run_container'){
+        stage('run flask container'){
             steps {
                 sh 'sudo docker run --name flask_projet -p 80:80 -d flaskapp:latest'
             }
         }
-        stage('if_file') {
+        stage('check if report file exist') {
             steps {
                 script {
                     def filePath = '/home/ubuntu/workspace/check_dynamo/report.json'
@@ -76,7 +76,7 @@ pipeline{
                 }    
             }    
         }    
-        stage('add_username_date_test'){
+        stage('add usrname, date and test result to report file'){
             steps {
                 wrap([$class: 'BuildUser']) {
                     sh 'echo "${BUILD_USER}" >> report.json'
@@ -106,21 +106,21 @@ pipeline{
                 }
             }
         }
-        stage('upload_test_to_s3'){
+        stage('upload report file to S3'){
             steps {
                 withAWS(credentials:'AWS_credentials', region:'us-east-1'){
                     s3Upload(file:'/home/ubuntu/workspace/check_dynamo/report.json', bucket:'sqlabs-devops-shay', path:'report.json')
                 }
             }
         }
-        stage('if_test_ok'){
+        stage('check if the test is successful'){
             when {
                 expression {
                     return env.TEST == '200';
                 }
             }
             stages{
-                stage('deploy on agent'){
+                stage('choose which agents to deploy if test successful'){
                     steps{
                         script{
                             def agents = ["agent1", "agent2", "both"]
@@ -129,7 +129,7 @@ pipeline{
                         }
                     }
                 }
-                stage('when1') {
+                stage('deploy on agent1') {
                     when {
                         expression { env.AGENT == 'agent1' }
                     }
@@ -140,7 +140,7 @@ pipeline{
                         deploy()
                     }
                 }
-                stage('when2') {
+                stage('deploy on agent2') {
                     when {
                         expression { env.AGENT == 'agent2' }
                     }
@@ -151,12 +151,12 @@ pipeline{
                         deploy()
                     }
                 }
-                stage('both') {
+                stage('deploy on both agents') {
                     when {
                         expression { env.AGENT == 'both' }
                     }
                     parallel {
-                        stage('agent1') {
+                        stage('deploy on agent1') {
                             agent {
                                 label 'agent1'
                             }
@@ -164,7 +164,7 @@ pipeline{
                                 deploy()
                             }
                         }
-                        stage('agent2') {
+                        stage('deploy on agent2') {
                             agent {
                                 label 'agent2'
                             }
